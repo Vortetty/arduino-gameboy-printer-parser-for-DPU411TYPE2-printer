@@ -31,6 +31,8 @@
 
 /******************************************************************************/
 
+extern bool gbp_busy;
+
 /* Init/Reset/ISR Functions */
 bool gpb_serial_io_init(size_t buffSize, uint8_t *buffPtr);
 bool gpb_serial_io_reset(void);

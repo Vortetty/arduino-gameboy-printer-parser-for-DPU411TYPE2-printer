@@ -311,7 +311,7 @@ bool gpb_serial_io_OnRising_ISR(const bool GBP_SOUT)
 #else
 bool gpb_serial_io_OnChange_ISR(const bool GBP_SCLK, const bool GBP_SOUT)
 #endif
-{
+{           
   // Based on SIO Timing Chart. Page 30 of GameBoy PROGRAMMING MANUAL Version 1.0:
   // * CPOL=1 : Clock Polarity 1. Idle on high.
   // * CPHA=1 : Clock Phase 1. Change on falling. Check bit on rising edge.
@@ -572,6 +572,7 @@ bool gpb_serial_io_OnChange_ISR(const bool GBP_SCLK, const bool GBP_SOUT)
             break;
           case GBP_COMMAND_PRINT:
             gpb_pktIO.busyPacketCountdown = GBP_BUSY_PACKET_COUNT;
+            gbp_busy = true;
             break;
           case GBP_COMMAND_DATA:
             gpb_pktIO.untransPacketCountdown = 3;
@@ -584,6 +585,7 @@ bool gpb_serial_io_OnChange_ISR(const bool GBP_SCLK, const bool GBP_SOUT)
             gpb_status_bit_update_unprocessed_data(gpb_pktIO.statusBuffer, false);
             gpb_status_bit_update_print_buffer_full(gpb_pktIO.statusBuffer, true);
             gpb_status_bit_update_printer_busy(gpb_pktIO.statusBuffer, true);
+            gbp_busy = true;
             gpb_status_bit_update_checksum_error(gpb_pktIO.statusBuffer, false);
             break;
           case GBP_COMMAND_INQUIRY:
@@ -596,6 +598,7 @@ bool gpb_serial_io_OnChange_ISR(const bool GBP_SCLK, const bool GBP_SOUT)
                 if (gpb_pktIO.busyPacketCountdown > 0)
                 {
                   gpb_status_bit_update_printer_busy(gpb_pktIO.statusBuffer, true);
+                  gbp_busy = true;
                   gpb_status_bit_update_print_buffer_full(gpb_pktIO.statusBuffer, true);
                 }
               }
@@ -605,8 +608,15 @@ bool gpb_serial_io_OnChange_ISR(const bool GBP_SCLK, const bool GBP_SOUT)
               gpb_pktIO.busyPacketCountdown--;
               if (gpb_pktIO.busyPacketCountdown == 0)
               {
-                gpb_status_bit_update_printer_busy(gpb_pktIO.statusBuffer, false);
+                if (!gbp_busy) {
+                    gpb_status_bit_update_printer_busy(gpb_pktIO.statusBuffer, false);
+                }
               }
+            }
+            else if (gpb_pktIO.busyPacketCountdown == 0) {
+                if (!gbp_busy) {
+                    gpb_status_bit_update_printer_busy(gpb_pktIO.statusBuffer, false);
+                }
             }
             break;
           default:

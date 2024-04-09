@@ -32,15 +32,17 @@ WebUSB WebUSBSerial(1, "herrzatacke.github.io/gb-printer-web/#/webusb");
 #define Serial WebUSBSerial
 #endif
 
+
 #define GAME_BOY_PRINTER_MODE      true   // to use with https://github.com/Mraulio/GBCamera-Android-Manager and https://github.com/Raphael-Boichot/PC-to-Game-Boy-Printer-interface
-#define GBP_OUTPUT_RAW_PACKETS     true   // by default, packets are parsed. if enabled, output will change to raw data packets for parsing and decompressing later
-#define GBP_USE_PARSE_DECOMPRESSOR false  // embedded decompressor can be enabled for use with parse mode but it requires fast hardware (SAMD21, SAMD51, ESP8266, ESP32)
+#define GBP_OUTPUT_RAW_PACKETS     false   // by default, packets are parsed. if enabled, output will change to raw data packets for parsing and decompressing later
+#define GBP_USE_PARSE_DECOMPRESSOR true  // embedded decompressor can be enabled for use with parse mode but it requires fast hardware (SAMD21, SAMD51, ESP8266, ESP32)
 
 #include <stdint.h>  // uint8_t
 #include <stddef.h>  // size_t
 
 #include "gameboy_printer_protocol.h"
 #include "gbp_serial_io.h"
+bool gbp_busy = false;
 
 #if GBP_OUTPUT_RAW_PACKETS
 #define GBP_FEATURE_PACKET_CAPTURE_MODE
@@ -130,10 +132,10 @@ const char *gbpCommand_toStr(int val)
   switch (val)
   {
     case GBP_COMMAND_INIT: return "INIT";
-    case GBP_COMMAND_PRINT: return "PRNT";
-    case GBP_COMMAND_DATA: return "DATA";
+    case GBP_COMMAND_PRINT: return "P";
+    case GBP_COMMAND_DATA: return "D";
     case GBP_COMMAND_BREAK: return "BREK";
-    case GBP_COMMAND_INQUIRY: return "INQY";
+    case GBP_COMMAND_INQUIRY: return "I";
     default: return "?";
   }
 }
@@ -278,6 +280,10 @@ void loop()
         Serial.print(gbp_serial_io_dataBuff_max());
         Serial.println("B");
         break;
+
+      case 'f':
+                gbp_busy=false;
+        break;
     }
   };
 }  // loop()
@@ -292,63 +298,104 @@ inline void gbp_parse_packet_loop(void)
   {
     if (gbp_pkt_processByte(&gbp_pktState, (const uint8_t)gbp_serial_io_dataBuff_getByte(), gbp_pktbuff, &gbp_pktbuffSize, sizeof(gbp_pktbuff)))
     {
+//      if (gbp_pktState.received == GBP_REC_GOT_PACKET)
+//      {
+//        digitalWrite(LED_STATUS_PIN, HIGH);
+//        Serial.print((char)'{');
+//        Serial.print("\"command\":\"");
+//        Serial.print(gbpCommand_toStr(gbp_pktState.command));
+//        Serial.print("\"");
+//        if (gbp_pktState.command == GBP_COMMAND_INQUIRY)
+//        {
+//          // !{"command":"INQY","status":{"lowbatt":0,"jam":0,"err":0,"pkterr":0,"unproc":1,"full":0,"bsy":0,"chk_err":0}}
+//          Serial.print(", \"status\":{");
+//          Serial.print("\"LowBat\":");
+//          Serial.print(gpb_status_bit_getbit_low_battery(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"ER2\":");
+//          Serial.print(gpb_status_bit_getbit_other_error(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"ER1\":");
+//          Serial.print(gpb_status_bit_getbit_paper_jam(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"ER0\":");
+//          Serial.print(gpb_status_bit_getbit_packet_error(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"Untran\":");
+//          Serial.print(gpb_status_bit_getbit_unprocessed_data(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"Full\":");
+//          Serial.print(gpb_status_bit_getbit_print_buffer_full(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"Busy\":");
+//          Serial.print(gpb_status_bit_getbit_printer_busy(gbp_pktState.status) ? '1' : '0');
+//          Serial.print(",\"Sum\":");
+//          Serial.print(gpb_status_bit_getbit_checksum_error(gbp_pktState.status) ? '1' : '0');
+//          Serial.print((char)'}');
+//        }
+//        if (gbp_pktState.command == GBP_COMMAND_PRINT)
+//        {
+//          //!{"command":"PRNT","sheets":1,"margin_upper":1,"margin_lower":3,"pallet":228,"density":64 }
+//          Serial.print(", \"sheets\":");
+//          Serial.print(gbp_pkt_printInstruction_num_of_sheets(gbp_pktbuff));
+//          Serial.print(", \"margin_upper\":");
+//          Serial.print(gbp_pkt_printInstruction_num_of_linefeed_before_print(gbp_pktbuff));
+//          Serial.print(", \"margin_lower\":");
+//          Serial.print(gbp_pkt_printInstruction_num_of_linefeed_after_print(gbp_pktbuff));
+//          Serial.print(", \"pallet\":");
+//          Serial.print(gbp_pkt_printInstruction_palette_value(gbp_pktbuff));
+//          Serial.print(", \"density\":");
+//          Serial.print(gbp_pkt_printInstruction_print_density(gbp_pktbuff));
+//        }
+//        if (gbp_pktState.command == GBP_COMMAND_DATA)
+//        {
+//          //!{"command":"DATA", "compressed":0, "more":0}
+//#ifdef GBP_FEATURE_PARSE_PACKET_USE_DECOMPRESSOR
+//          Serial.print(", \"compressed\":0");  // Already decompressed by us, so no need to do so
+//#else
+//          Serial.print(", \"compressed\":");
+//          Serial.print(gbp_pktState.compression);
+//#endif
+//          Serial.print(", \"more\":");
+//          Serial.print((gbp_pktState.dataLength != 0) ? '1' : '0');
+//        }
+//        Serial.println((char)'}');
+//        Serial.flush();
+//      }
+
       if (gbp_pktState.received == GBP_REC_GOT_PACKET)
       {
-        digitalWrite(LED_STATUS_PIN, HIGH);
-        Serial.print((char)'{');
-        Serial.print("\"command\":\"");
-        Serial.print(gbpCommand_toStr(gbp_pktState.command));
-        Serial.print("\"");
-        if (gbp_pktState.command == GBP_COMMAND_INQUIRY)
+        if (gbp_pktState.command != GBP_COMMAND_INQUIRY) // we don't care about inquiries, only data and prints, when the printer is done printing it will tell this program to say it's ready for more data
         {
-          // !{"command":"INQY","status":{"lowbatt":0,"jam":0,"err":0,"pkterr":0,"unproc":1,"full":0,"bsy":0,"chk_err":0}}
-          Serial.print(", \"status\":{");
-          Serial.print("\"LowBat\":");
-          Serial.print(gpb_status_bit_getbit_low_battery(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"ER2\":");
-          Serial.print(gpb_status_bit_getbit_other_error(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"ER1\":");
-          Serial.print(gpb_status_bit_getbit_paper_jam(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"ER0\":");
-          Serial.print(gpb_status_bit_getbit_packet_error(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"Untran\":");
-          Serial.print(gpb_status_bit_getbit_unprocessed_data(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"Full\":");
-          Serial.print(gpb_status_bit_getbit_print_buffer_full(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"Busy\":");
-          Serial.print(gpb_status_bit_getbit_printer_busy(gbp_pktState.status) ? '1' : '0');
-          Serial.print(",\"Sum\":");
-          Serial.print(gpb_status_bit_getbit_checksum_error(gbp_pktState.status) ? '1' : '0');
-          Serial.print((char)'}');
+          digitalWrite(LED_STATUS_PIN, HIGH);
+          Serial.print("%{\"command\":\"");
+          Serial.print(gbpCommand_toStr(gbp_pktState.command));
+          Serial.print("\"");
+          if (gbp_pktState.command == GBP_COMMAND_PRINT)
+          {
+            //!{"command":"P","sheets":1,"margin_upper":1,"margin_lower":3,"palette":228,"density":64 }
+            Serial.print(",\"shts\":"); // how many copies to print, always 1 for official games but i guess useful to have?
+            Serial.print(gbp_pkt_printInstruction_num_of_sheets(gbp_pktbuff));
+            Serial.print(",\"mrgnupr\":"); // how many pixels to waste before printing
+            Serial.print(gbp_pkt_printInstruction_num_of_linefeed_before_print(gbp_pktbuff));
+            Serial.print(",\"mrgnlwr\":"); // how many pixels to waste after printing
+            Serial.print(gbp_pkt_printInstruction_num_of_linefeed_after_print(gbp_pktbuff));
+            Serial.print(",\"palette\":"); // This one will take some work to figure out....
+            Serial.print(gbp_pkt_printInstruction_palette_value(gbp_pktbuff));
+            Serial.print(",\"dnsty\":"); // density, This one will probably be easy, idk, idc either, figure it out later
+            Serial.print(gbp_pkt_printInstruction_print_density(gbp_pktbuff));
+            Serial.println("}$");
+          }
+          if (gbp_pktState.command == GBP_COMMAND_DATA)
+          {
+            //!{"command":"D", "end":0, "length":16}
+            Serial.print(",\"end\":"); // get ready to recieve print command
+            Serial.print((gbp_pktState.dataLength == 0) ? '1' : '0');
+            Serial.print(",\"len\":"); // length of data sent in bytes
+            char dataLen[128];
+            itoa(gbp_pktState.dataLength, dataLen, 10);
+            Serial.print(gbp_pktState.dataLength);
+            Serial.println((char)'}');
+          }
+          if (gbp_pktState.command == GBP_COMMAND_INIT) {
+            Serial.println((char)'}');
+          }
+          Serial.flush();
         }
-        if (gbp_pktState.command == GBP_COMMAND_PRINT)
-        {
-          //!{"command":"PRNT","sheets":1,"margin_upper":1,"margin_lower":3,"pallet":228,"density":64 }
-          Serial.print(", \"sheets\":");
-          Serial.print(gbp_pkt_printInstruction_num_of_sheets(gbp_pktbuff));
-          Serial.print(", \"margin_upper\":");
-          Serial.print(gbp_pkt_printInstruction_num_of_linefeed_before_print(gbp_pktbuff));
-          Serial.print(", \"margin_lower\":");
-          Serial.print(gbp_pkt_printInstruction_num_of_linefeed_after_print(gbp_pktbuff));
-          Serial.print(", \"pallet\":");
-          Serial.print(gbp_pkt_printInstruction_palette_value(gbp_pktbuff));
-          Serial.print(", \"density\":");
-          Serial.print(gbp_pkt_printInstruction_print_density(gbp_pktbuff));
-        }
-        if (gbp_pktState.command == GBP_COMMAND_DATA)
-        {
-          //!{"command":"DATA", "compressed":0, "more":0}
-#ifdef GBP_FEATURE_PARSE_PACKET_USE_DECOMPRESSOR
-          Serial.print(", \"compressed\":0");  // Already decompressed by us, so no need to do so
-#else
-          Serial.print(", \"compressed\":");
-          Serial.print(gbp_pktState.compression);
-#endif
-          Serial.print(", \"more\":");
-          Serial.print((gbp_pktState.dataLength != 0) ? '1' : '0');
-        }
-        Serial.println((char)'}');
-        Serial.flush();
       }
       else
       {
@@ -362,6 +409,9 @@ inline void gbp_parse_packet_loop(void)
             for (int i = 0; i < GBP_TILE_SIZE_IN_BYTE; i++)
             {
               const uint8_t data_8bit = tileBuff.tile[i];
+              if (i == 0) {                 // --------
+                Serial.print((char)'&');    // This just prints out the & line identifier so my parser knows what kind of data
+              }                             // --------
               if (i == GBP_TILE_SIZE_IN_BYTE - 1)
               {
                 Serial.print((char)nibbleToCharLUT[(data_8bit >> 4) & 0xF]);
@@ -371,7 +421,7 @@ inline void gbp_parse_packet_loop(void)
               {
                 Serial.print((char)nibbleToCharLUT[(data_8bit >> 4) & 0xF]);
                 Serial.print((char)nibbleToCharLUT[(data_8bit >> 0) & 0xF]);
-                Serial.print((char)' ');
+                //Serial.print((char)' ');
               }
             }
             Serial.flush();
