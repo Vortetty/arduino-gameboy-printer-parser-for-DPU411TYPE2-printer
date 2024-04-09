@@ -1,3 +1,5 @@
+# Below is all from the original project, it may not be 100% accurate and references aloot of things relavent to the original that may have been modified for my use case
+
 # Arduino Gameboy Printer Emulator (V3)
 
 ![CI](https://github.com/mofosyne/arduino-gameboy-printer-emulator/workflows/CI/badge.svg?branch=master)
