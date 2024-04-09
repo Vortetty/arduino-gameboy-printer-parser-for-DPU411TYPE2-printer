@@ -1,6 +1,36 @@
-# Below is all from the original project, it may not be 100% accurate and references aloot of things relevant to the original that may have been modified for my use case
+# Notices
 
 please see [the compare page for the original code at commit 30b91fd](https://github.com/mofosyne/arduino-gameboy-printer-emulator/compare/30b91fd...Vortetty:arduino-gameboy-printer-parser-for-DPU411TYPE2-printer:master) to see all changes made so far
+
+in the case that is not good/verbose enough a list of both minor and major for the GPL3 to be followed, then here's a list:
+
+- serial output was changed to follow another format that is easier to quickly parse
+- serial output does not include all data that used to be included
+- serial output mode was changed to parse data and decompress data before being sent
+- some names in the serial output were shortened, this also affects other code using `gbpCommand_toStr`
+- added a variable called `gbp_busy`, this is set to true when the board starts telling the gameboy it is printing, it is not changed until `f` is recieved via serial connection
+- added code to change the afforementioned variable when `f` is recieved via the serial connection
+- changes made to prevent the code from reporting printing finished until `gbp_busy` has changed to false, even after the wait time for printing is over
+- modified the readme file to include the info you are reading right now, i should hope this change was fairly obvious to you
+- removed github workflows as i don't need them
+
+in the event the list above is not satisfactory, please refer back to the comparison page linked above, as it is far more verbose than i would ever care to write here.
+
+in keeping with requirements in GPL3 for instructions on how to update this firmware (at least that some places list):
+
+- download repo
+- open `GameBoyPrinterEmulator/GameBoyPrinterEmulator.ino` in the arduino ide
+- flash it to an arduino uno through normal method
+
+original repo can be found [here](https://github.com/mofosyne/arduino-gameboy-printer-emulator) (same exact link as in the "forked from" label but it could be argued that's not good/explicit enough so this is here to be safe)
+
+the license notice is printed over serial every single time the code boots, if you would like proof, just flash an UNO and open serial monitor
+
+see the file called `LICENSE` and how it has not been changed by me, there is all the proof you should need that the license has not changed. read it for the code's license
+
+neither i nor the original contributors are liable for damages, nor do they or i place a warranty on any of this, use at your own risk. that said if it does break something still open an issue my goal is not to kill people's stuff.
+
+# Below is all from the original project, it may not be 100% accurate and references aloot of things relevant to the original that may have been modified for my use case
 
 # Arduino Gameboy Printer Emulator (V3)
 
