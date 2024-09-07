@@ -179,6 +179,7 @@ void setup(void)
   pinMode(GBP_SC_PIN, INPUT);
   pinMode(GBP_SO_PIN, INPUT);
   pinMode(GBP_SI_PIN, OUTPUT);
+  pinMode(5, INPUT);
 
   /* Default link serial out pin state */
   digitalWrite(GBP_SI_PIN, LOW);
@@ -280,10 +281,6 @@ void loop()
         Serial.print(gbp_serial_io_dataBuff_max());
         Serial.println("B");
         break;
-
-      case 'f':
-                gbp_busy=false;
-        break;
     }
   };
 }  // loop()
@@ -356,6 +353,10 @@ inline void gbp_parse_packet_loop(void)
 //        Serial.println((char)'}');
 //        Serial.flush();
 //      }
+
+      if (digitalRead(5)) {
+            gbp_busy=false;
+      }
 
       if (gbp_pktState.received == GBP_REC_GOT_PACKET)
       {
