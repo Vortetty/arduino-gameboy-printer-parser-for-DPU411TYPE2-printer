@@ -30,7 +30,7 @@ see the file called `LICENSE` and how it has not been changed by me, there is al
 
 neither i nor the original contributors are liable for damages, nor do they or i place a warranty on any of this, use at your own risk. that said if it does break something still open an issue my goal is not to kill people's stuff.
 
-# Below is all from the original project, it may not be 100% accurate and references aloot of things relevant to the original that may have been modified for my use case
+# Below is all from the original project, it may not be 100% accurate and references alot of things relevant to the original that may have been modified for my use case
 
 # Arduino Gameboy Printer Emulator (V3)
 ![CI](https://github.com/mofosyne/arduino-gameboy-printer-emulator/workflows/CI/badge.svg?branch=master)
